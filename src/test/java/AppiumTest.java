@@ -1,5 +1,7 @@
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.android.AndroidDriver;
+import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.testng.annotations.*;
 import org.openqa.selenium.WebElement;
@@ -21,95 +23,209 @@ public class AppiumTest {
         DesiredCapabilities dc = new DesiredCapabilities();
         dc.setCapability("platformName", "Android");
         dc.setCapability("appium:automationName", "uiautomator2");
-        dc.setCapability("appium:app", System.getProperty("user.dir")+"/app/sut.apk");
+        dc.setCapability("appium:app", System.getProperty("user.dir")+"/app/sut-v3.apk");
 
         driver = new AndroidDriver(new URL(appiumServerUrl), dc);
     }
 
     @Test
-    public void testNameRequiredValidation() {
+    public void testValidationFeedback() {
         driver.findElement(AppiumBy.accessibilityId("testButton")).click();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement submitButton = driver.findElement(AppiumBy.androidUIAutomator(
-                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"Submit\"))"
-        ));
-        wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
-        submitButton.click();
-        WebElement error = driver.findElement(AppiumBy.androidUIAutomator(
-                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--fullname\"))"
-        ));
-        wait.until(ExpectedConditions.visibilityOf(error));
-        Assert.assertEquals(error.getText(), "Name is required", "Expected required error message.");
-    }
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
 
-    @Test
-    public void testNamePatternValidation() {
-        driver.findElement(AppiumBy.accessibilityId("testButton")).click();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-
-        // Find and input an invalid name
-        WebElement inputField = wait.until(ExpectedConditions.presenceOfElementLocated(
+        WebElement nameInputField = wait.until(ExpectedConditions.presenceOfElementLocated(
                 AppiumBy.accessibilityId("survey-field--fullname")
         ));
-        inputField.sendKeys("123!@#");
+        nameInputField.sendKeys("123!@#");
+
+        WebElement bdInputField = wait.until(ExpectedConditions.presenceOfElementLocated(
+                AppiumBy.accessibilityId("survey-field--birthdate")
+        ));
+        bdInputField.sendKeys("123!@#");
+
 
         WebElement submitButton = driver.findElement(AppiumBy.androidUIAutomator(
                 "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"Submit\"))"
         ));
         wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
         submitButton.click();
-        WebElement error = driver.findElement(AppiumBy.androidUIAutomator(
+        WebElement nameError = driver.findElement(AppiumBy.androidUIAutomator(
                 "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--fullname\"))"
         ));
-        wait.until(ExpectedConditions.visibilityOf(error));
-        Assert.assertEquals(error.getText(), "Name contains invalid characters", "Expected required error message.");
+        wait.until(ExpectedConditions.visibilityOf(nameError));
+        Assert.assertEquals(nameError.getText(), "Name contains invalid characters", "Expected required error message.");
+        WebElement bdError = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--birthdate\"))"
+        ));
+        wait.until(ExpectedConditions.visibilityOf(bdError));
+        Assert.assertEquals(bdError.getText(), "Birth Date is invalid", "Expected required error message.");
+        nameInputField.clear();
+        nameInputField.sendKeys("cs project");
+        bdInputField.clear();
+        bdInputField.sendKeys("31-02-2002");
+        Assert.assertEquals(bdError.getText(), "Birth Date is invalid");
+
+        Assert.assertThrows(
+                NoSuchElementException.class,
+                () -> driver.findElement(
+                        AppiumBy.accessibilityId("survey-error--fullname")
+                )
+        );
     }
 
     @Test
-    public void testInvalidBirthDate() {
+    public  void testRequiredFields() {
         driver.findElement(AppiumBy.accessibilityId("testButton")).click();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-
-        // Find and input an invalid name
-        WebElement inputField = wait.until(ExpectedConditions.presenceOfElementLocated(
-                AppiumBy.accessibilityId("survey-field--birthdate")
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+        WebElement submitButton = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"Submit\"))"
         ));
-        inputField.sendKeys("123!@#");
+        wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
+        submitButton.click();
+        WebElement nameError = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--fullname\"))"
+        ));
+        wait.until(ExpectedConditions.visibilityOf(nameError));
+        Assert.assertEquals(nameError.getText(), "Name is required", "Expected required error message.");
+        WebElement bdError = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--birthdate\"))"
+        ));
+        wait.until(ExpectedConditions.visibilityOf(bdError));
+        Assert.assertEquals(bdError.getText(), "Birth Date is required", "Expected required error message.");
+
+    }
+
+    @Test
+    public  void testDynamicDefectFields() {
+        driver.findElement(AppiumBy.accessibilityId("testButton")).click();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+        // Scroll to the element with content-desc "ChatGPT"
+        WebElement chatGPTcheckBoxContainer = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"ChatGPT\"))"
+        ));
+
+        WebElement copilotcheckBoxContainer = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"Copilot\"))"
+        ));
+
+        // Now locate the inner ViewGroup from the checkbox container
+        WebElement gptcheckBoxViewGroup = chatGPTcheckBoxContainer.findElement(By.className("android.view.ViewGroup"));
+        gptcheckBoxViewGroup.click();
+        WebElement pilotcheckBoxViewGroup = copilotcheckBoxContainer.findElement(By.className("android.view.ViewGroup"));
+        pilotcheckBoxViewGroup.click();
+        new WebDriverWait(driver, Duration.ofSeconds(1));
+
+        WebElement gptDefectField = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"survey-field--modelcons-chatgpt\"))"
+        ));
+
+        gptDefectField.sendKeys("defect");
+        WebElement pilotDefectField = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"survey-field--modelcons-copilot\"))"
+        ));
+        pilotDefectField.sendKeys("defect");
+        pilotcheckBoxViewGroup.click();
+        pilotcheckBoxViewGroup.click();
+        Assert.assertEquals(pilotDefectField.getText().length(), 0);
+    }
+
+    @Test
+    public void testMaximumInput() {
+        driver.findElement(AppiumBy.accessibilityId("testButton")).click();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+        // Scroll to the element with content-desc "ChatGPT"
+        WebElement chatGPTcheckBoxContainer = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"ChatGPT\"))"
+        ));
+
+        WebElement copilotcheckBoxContainer = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"Copilot\"))"
+        ));
+
+        // Now locate the inner ViewGroup from the checkbox container
+        WebElement gptcheckBoxViewGroup = chatGPTcheckBoxContainer.findElement(By.className("android.view.ViewGroup"));
+        gptcheckBoxViewGroup.click();
+        WebElement pilotcheckBoxViewGroup = copilotcheckBoxContainer.findElement(By.className("android.view.ViewGroup"));
+        pilotcheckBoxViewGroup.click();
+        new WebDriverWait(driver, Duration.ofSeconds(1));
+
+        WebElement gptDefectField = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"survey-field--modelcons-chatgpt\"))"
+        ));
+
+        gptDefectField.sendKeys("this will exceed the world limit");
+        WebElement pilotDefectField = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"survey-field--modelcons-copilot\"))"
+        ));
+        pilotDefectField.sendKeys("defect");
 
         WebElement submitButton = driver.findElement(AppiumBy.androidUIAutomator(
                 "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"Submit\"))"
         ));
         wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
         submitButton.click();
-        WebElement error = driver.findElement(AppiumBy.androidUIAutomator(
-                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--birthdate\"))"
+
+        WebElement gptMaxLengthError = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--modelcons-chatgpt\"))"
         ));
-        wait.until(ExpectedConditions.visibilityOf(error));
-        Assert.assertEquals(error.getText(), "Not valid", "Expected required error message.");
+        wait.until(ExpectedConditions.visibilityOf(gptMaxLengthError));
+        Assert.assertEquals(gptMaxLengthError.getText(), "Defect/con cannot exceed 10 characters", "Expected required error message.");
+        Assert.assertThrows(
+                NoSuchElementException.class,
+                () -> driver.findElement(
+                        AppiumBy.accessibilityId("survey-error--modelcons-copilot")
+                )
+        );
     }
 
     @Test
-    public void testInvalidCalendarBirthDate() {
+    public  void testFormReset() {
         driver.findElement(AppiumBy.accessibilityId("testButton")).click();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
 
-        // Find and input an invalid name
-        WebElement inputField = wait.until(ExpectedConditions.presenceOfElementLocated(
-                AppiumBy.accessibilityId("survey-field--birthdate")
+        WebElement nameInputField = wait.until(ExpectedConditions.presenceOfElementLocated(
+                AppiumBy.accessibilityId("survey-field--fullname")
         ));
-        inputField.sendKeys("31-02-2002"); // february never has 31 days
+        nameInputField.sendKeys("cs project");
 
-        WebElement submitButton = driver.findElement(AppiumBy.androidUIAutomator(
-                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"Submit\"))"
+        // Scroll to the element with content-desc "ChatGPT"
+        WebElement chatGPTcheckBoxContainer = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"ChatGPT\"))"
         ));
-        wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
-        submitButton.click();
-        WebElement error = driver.findElement(AppiumBy.androidUIAutomator(
-                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"survey-error--birthdate\"))"
+        // Now locate the inner ViewGroup from the checkbox container
+        WebElement gptcheckBoxViewGroup = chatGPTcheckBoxContainer.findElement(By.className("android.view.ViewGroup"));
+        gptcheckBoxViewGroup.click();
+        new WebDriverWait(driver, Duration.ofSeconds(1));
+        WebElement gptDefectField = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description(\"survey-field--modelcons-chatgpt\"))"
         ));
-        wait.until(ExpectedConditions.visibilityOf(error));
-        Assert.assertEquals(error.getText(), "Not valid", "Expected required error message.");
+        gptDefectField.sendKeys("defect");
+
+        WebElement resetButton = driver.findElement(AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().description(\"Reset\"))"
+        ));
+        wait.until(ExpectedConditions.elementToBeClickable(resetButton)).click();
+        resetButton.click();
+        new WebDriverWait(driver, Duration.ofSeconds(1));
+        Assert.assertEquals(nameInputField.getText().length(), 0);
+        Assert.assertThrows(
+                NoSuchElementException.class,
+                () -> driver.findElement(
+                        AppiumBy.accessibilityId("survey-field--modelcons-chatgpt")
+                )
+        );
     }
+
 
 
     @AfterMethod
